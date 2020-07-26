@@ -83,6 +83,5 @@ RUN rm -rf /usr/src/libtgvoip
 # Purge dowloaded packages
 RUN rm -rf /var/lib/apt/lists/*
 
-RUN ls -lh
 CMD python3 /root/tgcall.py
 #RUN while true; do sleep 1000; done
