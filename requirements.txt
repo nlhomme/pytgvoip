@@ -1,3 +1,3 @@
 six==1.12.0
-python-telegram
+python-telegram==11.1.0
 python-telegram-bot
