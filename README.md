@@ -1,6 +1,6 @@
 # Python based Telegram VOIP calls
 
-# Warning: this is not yet ready to use
+# Warning: this is not yet ready to use, I need to fix [the issue 6](https://github.com/nlhomme/pytgvoip/issues/6), any help is welcome 
 
 ## Build with Docker
 ```
