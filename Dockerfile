@@ -59,7 +59,7 @@ RUN set -ex; cd python-telegram;python setup.py install
 
 # pytgvoip
 WORKDIR /usr/src
-RUN git clone https://github.com/gabomdq/pytgvoip.git
+RUN git clone https://github.com/nlhomme/pytgvoip.git
 RUN cd pytgvoip;python setup.py install
 
 CMD python
