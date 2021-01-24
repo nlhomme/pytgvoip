@@ -1,70 +1,69 @@
-FROM debian:buster
+FROM alpine:3.8
 
-# Install compiling tools, pyhton3 and pip
-RUN apt update \
-&& apt --no-install-recommends -y install make \
-      git \
-      zlib1g-dev \
-      libssl-dev \
-      gperf \
-      php \
-      cmake \
-      clang \
-      libc++-dev \
-      libc++abi-dev \
-      libopus-dev \
-      libpulse-dev \
-      libasound-dev \
-      python3 \
-      python3-pip \
-      python3-dev
+RUN apk add --update \
+              ca-certificates \
+              musl \
+              build-base \
+              python3 \
+              python3-dev \
+              bash \
+              git \
+              libxml2-dev \
+              libxslt-dev \
+              openssl-dev \
+              opus-dev \
+              pulseaudio-dev \
+              alsa-lib-dev \
+              cmake \
+              gperf \
+              automake \
+              alpine-sdk \
+              linux-headers \
+              zlib-dev \
+ && pip3.6 install --upgrade pip \
+ && rm /var/cache/apk/*
+
+# make us compatible with manylinux wheels and create some useful symlinks that are expected to exist
+RUN echo "manylinux1_compatible = True" > /usr/lib/python3.6/_manylinux.py \
+ && cd /usr/bin \
+ && ln -sf easy_install-3.6 easy_install \
+ && ln -sf idle3.6 idle \
+ && ln -sf pydoc3.6 pydoc \
+ && ln -sf python3.6 python \
+ && ln -sf python-config3.6 python-config \
+ && ln -sf pip3.6 pip \
+ && ln -sf /usr/include/locale.h /usr/include/xlocale.h
+
+WORKDIR /usr/src
+
+# Build libtgvoip
+RUN set -ex; git clone https://github.com/gabomdq/libtgvoip.git
+WORKDIR /usr/src/libtgvoip
+RUN set -ex; ./configure && make -j4 && make install
 
 # Build tdlib
 WORKDIR /usr/src
 RUN set -ex; git clone https://github.com/tdlib/td.git
 WORKDIR /usr/src/td
-RUN git checkout v1.6.0 \
-&& rm -rf build \
-&& mkdir build \
-&& cd build \
-&& export CXXFLAGS="-stdlib=libc++" \
-&& CC=/usr/bin/clang CXX=/usr/bin/clang++ cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=../tdlib .. \
-&& cmake --build . --target prepare_cross_compiling \
-&& cd .. \
-&& php SplitSource.php \
-&& cd build \
-&& cmake --build . --target install \
-&& cd .. \
-&& php SplitSource.php --undo \
-&& cd .. \
-&& ls -l td/tdlib
-#&& export CXXFLAGS="-stdlib=libc++" \
-#&& CC=/usr/bin/clang CXX=/usr/bin/clang++ cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=../tdlib .. \
-#&& cmake --build . --target install \
-#&& cd .. \
-#&& cd .. \
-#&& ls -l td/tdlib
-
-# Build libtgvoip
-WORKDIR /usr/src
-RUN set -ex; git clone https://github.com/gabomdq/libtgvoip.git
-
-WORKDIR /usr/src/libtgvoip
-RUN apt --no-install-recommends -y install 
-RUN set -ex; ./configure && make -j4 && make install
-
-# Copy python scripts and tgvoip.cpp
-COPY *.py /root/
-COPY requirements.txt /root/
-COPY tgvoip.cpp /root/
+RUN set -ex; rm -rf build
+RUN set -ex; mkdir build 
+WORKDIR /usr/src/td/build
+RUN set -ex; cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr/local .. 
+RUN set -ex; cmake --build . --target install
 
 # python-telegram
-WORKDIR /root
-RUN pip3 install setuptools wheel 
-RUN pip3 install -r requirements.txt
+WORKDIR /usr/src
+RUN git clone https://github.com/gabomdq/python-telegram.git
+RUN mkdir -p python-telegram/telegram/lib/linux && cp td/build/libtdjson.so python-telegram/telegram/lib/linux
+RUN set -ex; cd python-telegram;python setup.py install
 
 # pytgvoip
-CMD python3 /root/setup.py install
+WORKDIR /usr/src
+RUN git clone https://github.com/gabomdq/pytgvoip.git
+RUN cd pytgvoip;python setup.py install
+
+CMD python
+
 
 ARG VCS_REF
 ARG VCS_URL
@@ -72,16 +71,3 @@ ARG BUILD_DATE
 LABEL org.label-schema.vcs-ref=${VCS_REF} \
       org.label-schema.vcs-url=${VCS_URL} \
       org.label-schema.build-date=${BUILD_DATE}
-
-# Purge unuseful packages
-RUN apt -y purge make git zlib1g-dev libssl-dev gperf php cmake clang libc++-dev libc++abi-dev && apt -y autoremove
-
-# Purge tdlib and source code
-RUN rm -rf /usr/src/td
-RUN rm -rf /usr/src/libtgvoip
-
-# Purge dowloaded packages
-RUN rm -rf /var/lib/apt/lists/*
-
-CMD python3 /root/tgcall.py
-#RUN while true; do sleep 1000; done
