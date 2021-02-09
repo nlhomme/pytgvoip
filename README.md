@@ -1,8 +1,7 @@
 # Python based Telegram VOIP calls
 
-## Warning: Despite the v1.0 release, the tgcall.py script has not been fully tested
-## the script seems to work since it show no error and connection is notified to Telegram,
-## but I havent been able to make a call (yet).
+## Warning:
+Despite the v1.0 release, the tgcall.py script has not been fully tested the script seems to work since it show no error and connection is notified to Telegram, but I havent been able to make a call (yet).
 
 ## Build with Docker
 ```
